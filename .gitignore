@@ -1,0 +1,18 @@
+# Dependencies
+frontend/node_modules/
+backend/.venv/
+__pycache__/
+*.pyc
+
+# Build outputs
+frontend/dist/
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Environment
+.env
+*.local

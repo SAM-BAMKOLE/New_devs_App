@@ -1,6 +1,13 @@
 from datetime import datetime
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 from typing import Dict, Any, List
+
+TWO_PLACES = Decimal('0.01')
+
+
+def _quantize_money(value: Decimal) -> str:
+    """Round a monetary amount to 2 decimal places (cents) and return as string."""
+    return str(value.quantize(TWO_PLACES, rounding=ROUND_HALF_UP))
 
 async def calculate_monthly_revenue(property_id: str, month: int, year: int, db_session=None) -> Decimal:
     """
@@ -69,8 +76,8 @@ async def calculate_total_revenue(property_id: str, tenant_id: str) -> Dict[str,
                     return {
                         "property_id": property_id,
                         "tenant_id": tenant_id,
-                        "total": str(total_revenue),
-                        "currency": "USD", 
+                        "total": _quantize_money(total_revenue),
+                        "currency": "USD",
                         "count": row.reservation_count
                     }
                 else:
@@ -88,17 +95,19 @@ async def calculate_total_revenue(property_id: str, tenant_id: str) -> Dict[str,
     except Exception as e:
         print(f"Database error for {property_id} (tenant: {tenant_id}): {e}")
         
-        # Create property-specific mock data for testing when DB is unavailable
-        # This ensures each property shows different figures
+        # Create property- and tenant-specific mock data for testing when DB is unavailable.
+        # NOTE: property IDs are reused across tenants (e.g. prop-001 belongs to both
+        # tenant-a and tenant-b with different data), so the key must include tenant_id.
         mock_data = {
-            'prop-001': {'total': '1000.00', 'count': 3},
-            'prop-002': {'total': '4975.50', 'count': 4}, 
-            'prop-003': {'total': '6100.50', 'count': 2},
-            'prop-004': {'total': '1776.50', 'count': 4},
-            'prop-005': {'total': '3256.00', 'count': 3}
+            ('prop-001', 'tenant-a'): {'total': '2250.00', 'count': 4},
+            ('prop-001', 'tenant-b'): {'total': '0.00', 'count': 0},
+            ('prop-002', 'tenant-a'): {'total': '4975.50', 'count': 4},
+            ('prop-003', 'tenant-a'): {'total': '6100.50', 'count': 2},
+            ('prop-004', 'tenant-b'): {'total': '1776.50', 'count': 4},
+            ('prop-005', 'tenant-b'): {'total': '3256.00', 'count': 3},
         }
         
-        mock_property_data = mock_data.get(property_id, {'total': '0.00', 'count': 0})
+        mock_property_data = mock_data.get((property_id, tenant_id), {'total': '0.00', 'count': 0})
         
         return {
             "property_id": property_id,

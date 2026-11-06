@@ -15,11 +15,15 @@ async def get_dashboard_summary(
     
     revenue_data = await get_revenue_summary(property_id, tenant_id)
     
-    total_revenue_float = float(revenue_data['total'])
+    # Money must never be cast through float(): binary floating point cannot
+    # represent decimal currency exactly and causes cent-level rounding errors.
+    # The service already returns the total as a quantized decimal string, so
+    # pass it through unchanged to preserve precision.
+    total_revenue = revenue_data['total']
     
     return {
         "property_id": revenue_data['property_id'],
-        "total_revenue": total_revenue_float,
+        "total_revenue": total_revenue,
         "currency": revenue_data['currency'],
         "reservations_count": revenue_data['count']
     }
